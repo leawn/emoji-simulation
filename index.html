@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- Optimized viewport meta tag for iPhone/Safari -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Redhead Girl Catches Emojis</title>
     <style>
         body {
@@ -10,27 +11,26 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
+            justify-content: center; /* Center content vertically if it's less than screen height */
+            min-height: 100vh; /* Ensure body takes at least full viewport height */
             margin: 0;
             background-color: #f0f0f0;
-            overflow: hidden; /* Prevent scrollbars */
+            overflow: hidden; /* Prevent scrollbars from game logic */
             text-align: center;
-            touch-action: none; /* Prevents page scrolling on touch for game area */
+            touch-action: none; /* Prevents page scrolling on touch globally for this game */
         }
 
         #game-container {
             width: 90vw;
             max-width: 600px;
-            height: 70vh;
-            max-height: 800px;
+            height: 65vh; /* Slightly reduced height to give more room for controls */
+            max-height: 700px; /* Adjusted max height */
             border: 3px solid #333;
             background-color: #ADD8E6; /* Light blue sky */
             position: relative;
             overflow: hidden;
             box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            margin-bottom: 10px;
-            cursor: grab; /* Indicate draggability */
+            cursor: grab;
         }
         #game-container:active {
             cursor: grabbing;
@@ -45,52 +45,67 @@
             position: absolute;
             bottom: 10px;
             left: 50%;
-            transform: translateX(-50%); /* Center based on its own width */
+            transform: translateX(-50%);
             user-select: none;
-            /* Transition for smoother movement if desired, but direct positioning is often better for responsiveness */
-            /* transition: left 0.05s linear; */
         }
 
         .emoji {
             font-size: 26px;
             position: absolute;
             user-select: none;
-            transition: transform 0.2s ease-out, opacity 0.2s ease-out; /* For caught effect */
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
         }
 
         .emoji.caught {
-            transform: scale(1.5) rotate(30deg); /* Little pop effect */
+            transform: scale(1.5) rotate(30deg);
             opacity: 0;
         }
 
-
-        #status-bar {
-            padding: 10px;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            min-width: 280px;
+        /* Wrapper for UI controls to handle safe area */
+        #ui-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 90vw; /* Match game container width */
+            max-width: 600px;
+            padding-top: 10px; /* Space between game and status bar */
+            /* Add base padding AND safe area inset for bottom */
+            padding-bottom: calc(15px + env(safe-area-inset-bottom));
             box-sizing: border-box;
         }
 
+        #status-bar {
+            padding: 8px; /* Slightly reduced padding */
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%; /* Take full width of #ui-controls */
+            max-width: 350px; /* Max width for readability */
+            box-sizing: border-box;
+            margin-bottom: 10px; /* Space before buttons */
+        }
+
         #start-button, #restart-button {
-            padding: 12px 24px;
+            padding: 12px 20px; /* Adjusted padding */
             font-size: 16px;
             cursor: pointer;
             background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 5px;
-            margin: 10px 5px;
+            margin: 5px;
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on iOS */
         }
         #restart-button {
             background-color: #f44336;
             display: none;
         }
 
-        @media (max-width: 360px) {
+        @media (max-width: 380px) { /* Adjusted breakpoint */
             h1 {
-                font-size: 1.5em;
+                font-size: 1.4em;
+                margin-top: calc(10px + env(safe-area-inset-top)); /* Account for top notch/status bar */
+                margin-bottom: 5px;
             }
             .emoji {
                 font-size: 22px;
@@ -101,9 +116,15 @@
                 height: 50px;
                 line-height: 50px;
             }
+            #game-container {
+                height: 60vh; /* Further reduce on very small screens */
+            }
             #start-button, #restart-button {
                 padding: 10px 15px;
                 font-size: 14px;
+            }
+            #status-bar {
+                font-size: 0.9em;
             }
         }
     </style>
@@ -117,14 +138,15 @@
         <!-- Emojis will be added here by JavaScript -->
     </div>
 
-    <div id="status-bar">
-        Emojis Caught: <span id="score">0</span> / 100
-        <div id="message">Click "Start Game" to begin!</div>
-    </div>
-
-    <div>
-        <button id="start-button">Start Game</button>
-        <button id="restart-button">Restart Game</button>
+    <div id="ui-controls">
+        <div id="status-bar">
+            Emojis Caught: <span id="score">0</span> / 100
+            <div id="message">Click "Start Game" to begin!</div>
+        </div>
+        <div> <!-- Wrapper for buttons -->
+            <button id="start-button">Start Game</button>
+            <button id="restart-button">Restart Game</button>
+        </div>
     </div>
 
     <script>
@@ -136,7 +158,7 @@
         const restartButton = document.getElementById('restart-button');
 
         const TOTAL_EMOJIS = 100;
-        const EMOJI_TYPES = ['😂', '💯', '❤️', '😢'];
+        const EMOJI_TYPES = ['😂', '💯', '❤️', '😢']; // Laughing, 100, heart, tear
         const EMOJI_FALL_SPEED_MIN = 0.7;
         const EMOJI_FALL_SPEED_MAX = 1.8;
 
@@ -145,16 +167,14 @@
         let gameLoopInterval = null;
         let spawnInterval = null;
         let emojisSpawned = 0;
-        let missedEmojis = 0; // To track missed emojis
+        let missedEmojis = 0;
 
-        // Girl movement
         let isDragging = false;
 
         function moveGirl(clientX) {
             const rect = gameContainer.getBoundingClientRect();
             let newLeft = clientX - rect.left - (girlElement.offsetWidth / 2);
 
-            // Constrain within game container
             const minLeft = 0;
             const maxLeft = gameContainer.offsetWidth - girlElement.offsetWidth;
             newLeft = Math.max(minLeft, Math.min(newLeft, maxLeft));
@@ -162,21 +182,13 @@
             girlElement.style.left = newLeft + 'px';
         }
 
+        // Mouse events for desktop
         gameContainer.addEventListener('mousedown', (e) => {
-            if (!gameLoopInterval) return; // Only allow dragging if game is active
+            if (!gameLoopInterval) return;
             isDragging = true;
             moveGirl(e.clientX);
             gameContainer.style.cursor = 'grabbing';
         });
-
-        gameContainer.addEventListener('touchstart', (e) => {
-            if (!gameLoopInterval) return;
-            if (e.touches.length === 1) {
-                // e.preventDefault(); // Prevent page scroll if game container is touched
-                isDragging = true;
-                moveGirl(e.touches[0].clientX);
-            }
-        }, { passive: false }); // passive: false to allow preventDefault if needed
 
         document.addEventListener('mousemove', (e) => {
             if (isDragging && gameLoopInterval) {
@@ -184,29 +196,39 @@
             }
         });
 
-        document.addEventListener('touchmove', (e) => {
-            if (isDragging && gameLoopInterval && e.touches.length === 1) {
-                // e.preventDefault(); // Prevent page scroll
-                moveGirl(e.touches[0].clientX);
-            }
-        }, { passive: false });
-
         document.addEventListener('mouseup', () => {
             if (isDragging) {
                 isDragging = false;
-                gameContainer.style.cursor = 'grab';
+                if (gameLoopInterval) gameContainer.style.cursor = 'grab';
+                else gameContainer.style.cursor = 'default';
             }
         });
-        document.addEventListener('touchend', () => {
+
+        // Touch events for mobile
+        gameContainer.addEventListener('touchstart', (e) => {
+            if (!gameLoopInterval) return;
+            if (e.touches.length === 1) {
+                // e.preventDefault(); // Usually not needed due to touch-action: none on body
+                isDragging = true;
+                moveGirl(e.touches[0].clientX);
+            }
+        }, { passive: true }); // passive: true if not calling preventDefault
+
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging && gameLoopInterval && e.touches.length === 1) {
+                // e.preventDefault();
+                moveGirl(e.touches[0].clientX);
+            }
+        }, { passive: true });
+
+        const endDrag = () => {
             if (isDragging) {
                 isDragging = false;
+                // No need to change cursor for touch
             }
-        });
-        document.addEventListener('touchcancel', () => {
-             if (isDragging) {
-                isDragging = false;
-            }
-        });
+        };
+        document.addEventListener('touchend', endDrag);
+        document.addEventListener('touchcancel', endDrag);
 
 
         function getCurrentEmojiPixelSize() {
@@ -242,19 +264,19 @@
             const emojiApproximateSize = getCurrentEmojiPixelSize();
 
             emoji.style.left = Math.random() * (containerWidth - emojiApproximateSize) + 'px';
-            emoji.style.top = -emojiApproximateSize + 'px';
+            emoji.style.top = -(emojiApproximateSize + 5) + 'px'; // Start a bit higher
 
             emoji.dataset.fallSpeed = EMOJI_FALL_SPEED_MIN + Math.random() * (EMOJI_FALL_SPEED_MAX - EMOJI_FALL_SPEED_MIN);
-            emoji.dataset.driftX = (Math.random() - 0.5) * 0.4; // Slightly less drift
+            emoji.dataset.driftX = (Math.random() - 0.5) * 0.4;
 
             gameContainer.appendChild(emoji);
             emojisOnScreen.push(emoji);
             emojisSpawned++;
         }
 
-        function checkCollision(emoji1, emoji2) {
-            const rect1 = emoji1.getBoundingClientRect();
-            const rect2 = emoji2.getBoundingClientRect();
+        function checkCollision(el1, el2) {
+            const rect1 = el1.getBoundingClientRect();
+            const rect2 = el2.getBoundingClientRect();
 
             return !(
                 rect1.right < rect2.left ||
@@ -265,7 +287,7 @@
         }
 
         function gameLoop() {
-            const girlRect = girlElement.getBoundingClientRect(); // Get girl's position once per frame
+            // const girlRect = girlElement.getBoundingClientRect(); // Recalculate if girl can move during this frame due to other factors
 
             for (let i = emojisOnScreen.length - 1; i >= 0; i--) {
                 const emoji = emojisOnScreen[i];
@@ -279,7 +301,6 @@
                 emoji.style.top = (currentTop + fallSpeed) + 'px';
                 emoji.style.left = (currentLeft + driftX) + 'px';
 
-                // Collision detection with the girl
                 if (checkCollision(emoji, girlElement)) {
                     emoji.classList.add('caught');
                     score++;
@@ -289,18 +310,16 @@
                         if (emoji.parentNode) {
                             emoji.parentNode.removeChild(emoji);
                         }
-                    }, 200); // Match transition duration for caught effect
-                    emojisOnScreen.splice(i, 1); // Remove from active array immediately
+                    }, 200);
+                    emojisOnScreen.splice(i, 1);
 
                     if (score === TOTAL_EMOJIS) {
-                        endGame(true); // Player caught all
-                        return; // Exit loop early
+                        endGame(true);
+                        return;
                     }
-                    continue; // Move to next emoji
+                    continue;
                 }
 
-
-                // Remove emoji if it falls off screen (missed)
                 if (currentTop > gameContainer.offsetHeight) {
                     if (emoji.parentNode) {
                         emoji.parentNode.removeChild(emoji);
@@ -308,21 +327,18 @@
                     emojisOnScreen.splice(i, 1);
                     missedEmojis++;
 
-                    // Check if all emojis have passed and game should end
                     if (emojisSpawned >= TOTAL_EMOJIS && emojisOnScreen.length === 0) {
-                         endGame(score === TOTAL_EMOJIS);
+                         endGame(score === TOTAL_EMOJIS); // Should be false if some were missed
                          return;
                     }
                 }
 
-                // Boundary for horizontal drift
                 if (currentLeft < 0 || currentLeft > gameContainer.offsetWidth - emoji.offsetWidth) {
                     emoji.dataset.driftX = -driftX;
                     emoji.style.left = Math.max(0, Math.min(currentLeft, gameContainer.offsetWidth - emoji.offsetWidth)) + 'px';
                 }
             }
 
-            // Final check if all spawned and none left, but not all caught.
              if (emojisSpawned >= TOTAL_EMOJIS && emojisOnScreen.length === 0 && score < TOTAL_EMOJIS && gameLoopInterval) {
                  endGame(false);
             }
@@ -333,22 +349,22 @@
             messageElement.textContent = "Catch the emojis!";
             startButton.style.display = 'none';
             restartButton.style.display = 'inline-block';
-            gameContainer.style.cursor = 'grab'; // Set cursor for draggable
+            gameContainer.style.cursor = 'grab';
 
-            const spawnRate = 300; // milliseconds per emoji
+            const spawnRate = 300;
             spawnInterval = setInterval(createEmoji, spawnRate);
-
-            gameLoopInterval = setInterval(gameLoop, 1000 / 60); // ~60 FPS
+            if(gameLoopInterval) clearInterval(gameLoopInterval); // Ensure no duplicates
+            gameLoopInterval = setInterval(gameLoop, 1000 / 60);
         }
 
         function endGame(won) {
             clearInterval(gameLoopInterval);
-            gameLoopInterval = null;
+            gameLoopInterval = null; // Important to set to null
             if (spawnInterval) {
                 clearInterval(spawnInterval);
                 spawnInterval = null;
             }
-            isDragging = false; // Ensure dragging stops
+            isDragging = false;
             gameContainer.style.cursor = 'default';
 
 
@@ -356,7 +372,7 @@
                 messageElement.textContent = "AWESOME! You caught all 100 emojis!";
                 messageElement.style.color = 'green';
             } else {
-                messageElement.textContent = `GAME OVER! You caught ${score} out of ${TOTAL_EMOJIS}. Missed: ${missedEmojis}.`;
+                messageElement.textContent = `GAME OVER! Caught ${score}/${TOTAL_EMOJIS}. Missed: ${missedEmojis}.`;
                 messageElement.style.color = 'red';
             }
             restartButton.style.display = 'inline-block';
@@ -373,7 +389,6 @@
             gameContainer.style.cursor = 'default';
 
 
-            // Clear existing emojis
             emojisOnScreen.forEach(emoji => {
                 if (emoji.parentNode) {
                     emoji.parentNode.removeChild(emoji);
@@ -386,10 +401,8 @@
             gameLoopInterval = null;
             spawnInterval = null;
 
-            // Reset girl position
             girlElement.style.left = '50%';
-            girlElement.style.transform = 'translateX(-50%)';
-
+            // transform translateX is already in CSS
 
             startButton.style.display = 'inline-block';
             restartButton.style.display = 'none';
@@ -398,7 +411,6 @@
         startButton.addEventListener('click', startGame);
         restartButton.addEventListener('click', startGame);
 
-        // Initial state
         resetGame();
     </script>
 

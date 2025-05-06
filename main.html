@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redhead Girl vs 100 Emojis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            overflow: hidden; /* Prevent scrollbars from emojis going off-screen */
+        }
+
+        #game-container {
+            width: 90vw;
+            max-width: 600px;
+            height: 70vh;
+            max-height: 800px;
+            border: 3px solid #333;
+            background-color: #ADD8E6; /* Light blue sky */
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        #girl {
+            width: 80px;
+            height: 120px;
+            /* You can replace this with an actual image URL or base64 data URI */
+            /* background-image: url('your-redhead-girl-image.png'); */
+            background-color: #FF7F50; /* Coral as placeholder skin */
+            border: 2px solid #A52A2A; /* Brown outline */
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            overflow: hidden; /* For the hair */
+        }
+        #girl::before { /* Red hair */
+            content: '';
+            width: 90px;
+            height: 60px;
+            background-color: #FF4500; /* Orangered hair */
+            border-radius: 50% 50% 20% 20% / 60% 60% 40% 40%;
+            position: absolute;
+            top: -10px;
+        }
+        #girl::after { /* Simple face placeholder */
+            content: '(^_^)' ;
+            font-size: 18px;
+            color: #333;
+            position: absolute;
+            top: 45px;
+        }
+
+
+        .emoji {
+            font-size: 28px; /* Make emojis noticeable */
+            position: absolute;
+            cursor: pointer;
+            user-select: none; /* Prevent text selection when clicking */
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+        }
+
+        .emoji.clicked {
+            transform: scale(0.1);
+            opacity: 0;
+        }
+
+        #status-bar {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        #start-button, #restart-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin: 10px;
+        }
+        #restart-button {
+            background-color: #f44336;
+            display: none; /* Hidden initially */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Redhead Girl vs 100 Emojis</h1>
+
+    <div id="game-container">
+        <div id="girl"></div>
+        <!-- Emojis will be added here by JavaScript -->
+    </div>
+
+    <div id="status-bar">
+        Emojis Dispelled: <span id="score">0</span> / 100
+        <div id="message">Click "Start Game" to begin!</div>
+    </div>
+
+    <button id="start-button">Start Game</button>
+    <button id="restart-button">Restart Game</button>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        const girlElement = document.getElementById('girl'); // We don't do much with her, but she's there!
+        const scoreElement = document.getElementById('score');
+        const messageElement = document.getElementById('message');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+
+        const TOTAL_EMOJIS = 100;
+        const EMOJI_TYPES = ['😂', '💯', '❤️', '😢']; // Laughing, 100, heart, tear
+        const EMOJI_FALL_SPEED_MIN = 0.5; // pixels per frame
+        const EMOJI_FALL_SPEED_MAX = 1.5; // pixels per frame
+
+        let emojisOnScreen = [];
+        let score = 0;
+        let gameLoopInterval = null;
+        let spawnInterval = null;
+        let emojisSpawned = 0;
+
+        function getRandomEmojiType() {
+            return EMOJI_TYPES[Math.floor(Math.random() * EMOJI_TYPES.length)];
+        }
+
+        function createEmoji() {
+            if (emojisSpawned >= TOTAL_EMOJIS) {
+                clearInterval(spawnInterval);
+                spawnInterval = null;
+                return;
+            }
+
+            const emoji = document.createElement('div');
+            emoji.classList.add('emoji');
+            emoji.textContent = getRandomEmojiType();
+
+            const containerWidth = gameContainer.offsetWidth;
+            const emojiSize = 30; // Approximate size for positioning
+
+            emoji.style.left = Math.random() * (containerWidth - emojiSize) + 'px';
+            emoji.style.top = -emojiSize + 'px'; // Start just above the container
+
+            // Assign random fall speed and horizontal drift
+            emoji.dataset.fallSpeed = EMOJI_FALL_SPEED_MIN + Math.random() * (EMOJI_FALL_SPEED_MAX - EMOJI_FALL_SPEED_MIN);
+            emoji.dataset.driftX = (Math.random() - 0.5) * 0.5; // Small horizontal drift
+
+            emoji.addEventListener('click', handleEmojiClick);
+
+            gameContainer.appendChild(emoji);
+            emojisOnScreen.push(emoji);
+            emojisSpawned++;
+        }
+
+        function handleEmojiClick(event) {
+            const clickedEmoji = event.target;
+            if (clickedEmoji.classList.contains('clicked')) return; // Already clicked
+
+            clickedEmoji.classList.add('clicked');
+            score++;
+            scoreElement.textContent = score;
+
+            // Remove after animation
+            setTimeout(() => {
+                if (clickedEmoji.parentNode) {
+                    clickedEmoji.parentNode.removeChild(clickedEmoji);
+                }
+                emojisOnScreen = emojisOnScreen.filter(e => e !== clickedEmoji);
+
+                if (score === TOTAL_EMOJIS && emojisOnScreen.length === 0) {
+                    endGame(true);
+                }
+            }, 200); // Match transition duration
+        }
+
+        function gameLoop() {
+            emojisOnScreen.forEach(emoji => {
+                if (emoji.classList.contains('clicked')) return;
+
+                let currentTop = parseFloat(emoji.style.top);
+                let currentLeft = parseFloat(emoji.style.left);
+                const fallSpeed = parseFloat(emoji.dataset.fallSpeed);
+                const driftX = parseFloat(emoji.dataset.driftX);
+
+                emoji.style.top = (currentTop + fallSpeed) + 'px';
+                emoji.style.left = (currentLeft + driftX) + 'px';
+
+                // Remove emoji if it falls off screen
+                if (currentTop > gameContainer.offsetHeight) {
+                    if (emoji.parentNode) {
+                        emoji.parentNode.removeChild(emoji);
+                    }
+                    emojisOnScreen = emojisOnScreen.filter(e => e !== emoji);
+                     // If all emojis have spawned and this was the last one, check win/loss
+                    if (emojisSpawned >= TOTAL_EMOJIS && emojisOnScreen.length === 0 && score < TOTAL_EMOJIS) {
+                        endGame(false); // Not all were clicked
+                    } else if (emojisSpawned >= TOTAL_EMOJIS && score === TOTAL_EMOJIS && emojisOnScreen.length === 0) {
+                        endGame(true); // All clicked and all processed
+                    }
+                }
+
+                // Basic boundary for horizontal drift
+                if (currentLeft < 0 || currentLeft > gameContainer.offsetWidth - emoji.offsetWidth) {
+                    emoji.dataset.driftX = -driftX; // Reverse drift
+                }
+            });
+
+            // If all emojis are spawned and none are left on screen, but not all clicked.
+            if (emojisSpawned >= TOTAL_EMOJIS && emojisOnScreen.length === 0 && score < TOTAL_EMOJIS) {
+                 endGame(false);
+            }
+        }
+
+        function startGame() {
+            resetGame();
+            messageElement.textContent = "Dispelling emojis...";
+            startButton.style.display = 'none';
+            restartButton.style.display = 'inline-block';
+
+            // Spawn emojis gradually
+            const spawnRate = 300; // milliseconds per emoji
+            spawnInterval = setInterval(createEmoji, spawnRate);
+
+            gameLoopInterval = setInterval(gameLoop, 1000 / 60); // ~60 FPS
+        }
+
+        function endGame(won) {
+            clearInterval(gameLoopInterval);
+            gameLoopInterval = null;
+            if (spawnInterval) {
+                clearInterval(spawnInterval);
+                spawnInterval = null;
+            }
+
+            if (won) {
+                messageElement.textContent = "CONGRATULATIONS! You dispelled all 100 emojis!";
+                messageElement.style.color = 'green';
+            } else {
+                messageElement.textContent = `GAME OVER! You only dispelled ${score} out of ${TOTAL_EMOJIS}.`;
+                messageElement.style.color = 'red';
+            }
+            restartButton.style.display = 'inline-block';
+        }
+
+        function resetGame() {
+            score = 0;
+            emojisSpawned = 0;
+            scoreElement.textContent = score;
+            messageElement.textContent = 'Click "Start Game" to begin!';
+            messageElement.style.color = 'black';
+
+            // Clear existing emojis
+            emojisOnScreen.forEach(emoji => {
+                if (emoji.parentNode) {
+                    emoji.parentNode.removeChild(emoji);
+                }
+            });
+            emojisOnScreen = [];
+
+            if (gameLoopInterval) clearInterval(gameLoopInterval);
+            if (spawnInterval) clearInterval(spawnInterval);
+            gameLoopInterval = null;
+            spawnInterval = null;
+
+            startButton.style.display = 'inline-block';
+            restartButton.style.display = 'none';
+        }
+
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame); // Restart button also calls startGame which resets
+
+        // Initial state
+        resetGame();
+    </script>
+
+</body>
+</html>
